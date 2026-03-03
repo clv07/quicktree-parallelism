@@ -1,5 +1,6 @@
-#include <iostream>
 #include <boost/program_options.hpp>
+#include <fstream>
+#include "distancemat.hpp"
 
 
 namespace po = boost::program_options;
@@ -12,8 +13,8 @@ int main(int argc, char** argv) {
 
     po::options_description desc{"Options"};
     desc.add_options()
-    ("distanceMatrix, m", po::value<std::string>(&matrixFilename)->required(), "Input distance matrix in PHYLIP format [REQUIRED].")
-    ("maxTaxa, N", po::value<uint32_t>(&maxTaxa)->default_value(1000), "Maximum number of taxa to read from the distance matrix file.")
+    ("distanceMatrix,m", po::value<std::string>(&matrixFilename)->required(), "Input distance matrix in PHYLIP format [REQUIRED].")
+    ("maxTaxa,N", po::value<uint32_t>(&maxTaxa)->default_value(1000), "Maximum number of taxa to read from the distance matrix file.")
     ("help,h", "Print help messages");
 
     po::options_description allOptions;
@@ -22,9 +23,18 @@ int main(int argc, char** argv) {
     po::variables_map vm;
     try {
         po::store(po::command_line_parser(argc, argv).options(allOptions).run(), vm);
-	po::notify(vm);
+	    po::notify(vm);
     } catch(std::exception &e){
+        std::cerr << "Argument error: " << e.what() << "\n\n";
         std::cerr << desc << std::endl;
         exit(1);	
     }
+
+    std::ifstream fp(matrixFilename);
+    if (!fp){
+        fprintf(stderr, "ERROR: Cannot open file: %s\n", matrixFilename.c_str());
+    }
+    
+    DistanceMatrix mat = readPhylipDistanceMatrix(fp);
+
 }

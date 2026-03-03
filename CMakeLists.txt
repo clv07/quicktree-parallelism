@@ -32,6 +32,7 @@ endif()
 
 add_executable (quicktree
     src/main.cpp
+    src/distancemat.cpp
 )
 
 
