@@ -1,6 +1,7 @@
 #include <boost/program_options.hpp>
 #include <fstream>
 #include "distancemat.hpp"
+#include "matcal.cpp"
 
 
 namespace po = boost::program_options;
@@ -35,6 +36,8 @@ int main(int argc, char** argv) {
         fprintf(stderr, "ERROR: Cannot open file: %s\n", matrixFilename.c_str());
     }
     
-    DistanceMatrix mat = readPhylipDistanceMatrix(fp);
+    DistanceMatrix mat = readPhylipDistanceMatrix(fp); 
+    DistanceMatrix computed_tree = compute_tree(mat);
 
+    printDistanceMatrix(mat);
 }

@@ -1,13 +1,17 @@
 // NJ Algorithm
 #include "distancemat.hpp"
+#include "tree.hpp"
 #include <climits> 
 
-int compute_tree(DistanceMatrix mat) {
+Node* compute_tree(DistanceMatrix mat) {
 
     // 6. Repeat step 1 to 5 till a single node (root) remains
     int cycle = mat.size;
+    DistanceMatrix new_mat(N-1);
+    int in_node_id = mat.size;
+
     for (int h=0; h<cycle; h++) { 
-        int N = mat.size
+        int N = mat.size;
         int u_i[N];
         int u_j[N];
     
@@ -62,6 +66,12 @@ int compute_tree(DistanceMatrix mat) {
         int uj = u_i[min_j];
         int d_i_ij =  0.5 * (d_ij + (ui - uj));
         int d_j_ij = d_ij - d_i_ij;
+
+        // build tree
+        Node node_i = new Node()
+        Node node_ij = new Node(in_node_id, false, "");
+
+        parent.set(node_i, node_j);
     
         // 4. Treat (ij) as a new tip, ignoring previous tips i and j
         // 5. Distance of (ij) from other tips k, d_k(ij) = (d_ik+d_jk-d_ij)/2
@@ -77,8 +87,9 @@ int compute_tree(DistanceMatrix mat) {
             }
         }
         mat = new_mat;
-        // problem: how to store constructed tree? -> save intermediate value?
     }
+
+
     
-    return 0
+    return parent;
 }
