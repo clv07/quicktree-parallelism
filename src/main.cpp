@@ -1,7 +1,6 @@
 #include <boost/program_options.hpp>
 #include <fstream>
-#include "distancemat.hpp"
-#include "matcal.cpp"
+#include "matcal.hpp"
 #include "timer.hpp"
 
 namespace po = boost::program_options;
@@ -36,14 +35,18 @@ int main(int argc, char** argv) {
         fprintf(stderr, "ERROR: Cannot open file: %s\n", matrixFilename.c_str());
     }
     
-    DistanceMatrix mat = readPhylipDistanceMatrix(fp); 
-    DistanceMatrix computed_tree = compute_tree(mat);
-    printDistanceMatrix(mat);
-
     std::vector<std::string> identifiers;
     
     timer.Start();
     fprintf(stdout, "Reading distance matrix from file.\n");
     DistanceMatrix mat = readPhylipDistanceMatrix(fp, identifiers);
     fprintf(stdout, "Completed in %ld msec \n\n", timer.Stop());
+
+    // test distance matrix update
+    uint32_t row=0;
+    uint32_t col=0;
+    printDistanceMatrix(&mat, row, col);
+    DistanceMatrix new_mat = update_matrix(&mat);
+    printDistanceMatrix(&new_mat, row, col);
+    return 0;
 }
