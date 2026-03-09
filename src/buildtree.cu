@@ -275,7 +275,7 @@ __global__ void updateDistanceMatrix(
 
         cudaDeviceSynchronize();
         MergeInfo info = transferNode2Host();
-        buildOneInternalNode(info);
+        buildInternalNode(info);
         
         active_count--;
     }
@@ -287,7 +287,8 @@ __global__ void updateDistanceMatrix(
 void GpuTree::initNodesOnCPU () {
     nodes.resize(N);
 
-    for(i = 0; i < numseqs; i++) {
+    // for(i = 0; i < numseqs; i++) {
+    for(uint32_t i = 0; i < N; i++) {
         nodes[i] = new TNode();
         nodes[i]->nodenumber = i;
         nodes[i]->identifier = identifiers[i];
@@ -326,11 +327,11 @@ void GpuTree::handleLeftovers() {
     uint32_t index_1_0 = leftovers[1] * (leftovers[1] - 1) + leftovers[0];
     uint32_t index_2_0 = leftovers[2] * (leftovers[2] - 1) + leftovers[0];
     uint32_t index_2_1 = leftovers[2] * (leftovers[2] - 1) + leftovers[1];
-    dist_i = theTree->child[0]->distance = (
+    double dist_i = theTree->child[0]->distance = (
         data[index_1_0]+ data[index_2_0] - data[index_2_1]
     ) * 0.5;
-    dist_j = data[index_1_0] - theTree->child[0]->distance;
-    dist_k = data[index_2_0] - theTree->child[0]->distance;
+    double dist_j = data[index_1_0] - theTree->child[0]->distance;
+    double dist_k = data[index_2_0] - theTree->child[0]->distance;
 
     if(dist_i < 0.0) {
         dist_i = 0.0;
