@@ -3,10 +3,12 @@
 #include <cstdint>
 #include <limits>
 #include <tuple>
-#define BLOCKSIZE 256
-#define NUMBLOCKS 8
+#define BLOCKSIZE 128
+#define NUMBLOCKS 1024
 
-
+/* 
+* Initialize vector to denote node active status.
+*/
 __global__ void initActive(uint32_t N, uint32_t* active) {
     uint32_t bx = blockIdx.x;
     uint32_t tx = threadIdx.x;
@@ -187,6 +189,9 @@ __global__ void updateMergeInfo(
     active[min_j] = 0;
 }
 
+/*
+* Update distance matrix for merged nodes to other active nodes.
+*/
 __global__ void updateDistanceMatrix(
     uint32_t N,
     double* mat,
@@ -251,6 +256,9 @@ __global__ void updateDistanceMatrix(
     }
 }
 
+/*
+* Update u_i value for marged nodes.
+*/
  __global__ void updateU(
      double* u_i,
      double* partial_sum,
@@ -351,12 +359,9 @@ __global__ void updateDistanceMatrix(
  /**
  * Use 1 block to update u_i
  */
-
-
 void GpuTree::initNodesOnCPU () {
     nodes.resize(N);
 
-    // for(i = 0; i < numseqs; i++) {
     for(uint32_t i = 0; i < N; i++) {
         nodes[i] = new TNode();
         nodes[i]->nodenumber = i;
@@ -364,7 +369,9 @@ void GpuTree::initNodesOnCPU () {
     }
 }
 
-
+/*
+* Build internal node of the tree.
+*/
 void GpuTree::buildInternalNode(const MergeInfo& info) {
     uint32_t i = info.min_ij[0];
     uint32_t j = info.min_ij[1];
@@ -382,6 +389,9 @@ void GpuTree::buildInternalNode(const MergeInfo& info) {
     nodes[j] = nullptr;
 }
 
+/*
+* Handle the last three taxas to ensure unrooted structure.
+*/
 void GpuTree::handleLeftovers() {
     std::vector<uint32_t> leftovers(3);
 
@@ -563,7 +573,9 @@ MergeInfo GpuTree::transferNode2Host() {
     return info;
 }
 
-
+/*
+* Copies the distance matrix from GPU back to Host. 
+*/
 void GpuTree::transferMat2Host() {
     cudaError_t err;
 
@@ -574,6 +586,9 @@ void GpuTree::transferMat2Host() {
     }
 }
 
+/*
+* Release cuda memory
+*/
 void GpuTree::clearAndReset() {
     cudaFree(mat);
     cudaFree(u_i);
