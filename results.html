@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QuickTree Parallelism — Results</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3250;
+      --accent: #6c8efb;
+      --accent2: #f97316;
+      --text: #e8eaf6;
+      --muted: #8891b4;
+      --green: #34d399;
+      --radius: 12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.6;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #1a1d27 0%, #12162a 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 60px 24px 50px;
+      text-align: center;
+    }
+    .tag {
+      display: inline-block;
+      background: rgba(108,142,251,0.15);
+      color: var(--accent);
+      border: 1px solid rgba(108,142,251,0.35);
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      margin-bottom: 18px;
+    }
+    header h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+    }
+    header h1 span { color: var(--accent); }
+    header p {
+      color: var(--muted);
+      max-width: 620px;
+      margin: 0 auto 36px;
+      font-size: 1.05rem;
+    }
+
+    /* ── KPI strip ── */
+    .kpis {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 16px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .kpi {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 28px;
+      min-width: 170px;
+      flex: 1 1 170px;
+    }
+    .kpi-value {
+      font-size: 2.1rem;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1;
+    }
+    .kpi-value.orange { color: var(--accent2); }
+    .kpi-value.green  { color: var(--green); }
+    .kpi-label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-top: 6px;
+    }
+
+    /* ── Main layout ── */
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 56px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 56px;
+    }
+
+    /* ── Section titles ── */
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .section-sub {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 24px;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+    }
+
+    /* ── Grid layouts ── */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+      gap: 24px;
+    }
+
+    /* ── Charts ── */
+    .chart-wrap {
+      position: relative;
+      height: 300px;
+    }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    thead tr {
+      background: var(--surface2);
+    }
+    th {
+      text-align: left;
+      padding: 10px 14px;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(46,50,80,0.5);
+      white-space: nowrap;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(108,142,251,0.05); }
+    .faster { color: var(--green); font-weight: 600; }
+    .slower { color: #f87171; font-weight: 600; }
+    .sim    { color: var(--green); }
+
+    /* ── Config heatmap table ── */
+    .heat-table td.cell {
+      text-align: center;
+      font-weight: 600;
+      border-radius: 6px;
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 32px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+
+<!--------------------- HEADER --------------------->
+<header>
+  <div class="tag">ECE 213 · GPU Computing Project</div>
+  <h1>QuickTree <span>Parallelism</span></h1>
+  <p>
+    GPU-accelerated Neighbor-Joining phylogenetic tree construction using CUDA,
+    benchmarked against the sequential QuickTree baseline on the DIPPER AliSim dataset.
+  </p>
+
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi-value orange">21.2×</div>
+      <div class="kpi-label">Peak Speedup (20K taxa)</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-value">8.23×</div>
+      <div class="kpi-label">Speedup at 10K taxa</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-value green">99.8%</div>
+      <div class="kpi-label">Avg. similarity to baseline</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-value" style="color:var(--muted);font-size:1.3rem;">NVIDIA A30</div>
+      <div class="kpi-label">MIG 2g.12gb · 466 GB/s</div>
+    </div>
+  </div>
+</header>
+
+<!------------------- MAIN -------------------->
+<main>
+
+  <!-- Section 1: Execution time + Speedup -->
+  <section>
+    <div class="section-title">Performance</div>
+    <div class="section-sub">
+      Total execution time and speedup vs. the sequential QuickTree baseline across dataset sizes.
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div style="font-weight:600;margin-bottom:16px;font-size:0.95rem;">Execution Time (seconds)</div>
+        <div class="chart-wrap">
+          <canvas id="timeChart"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div style="font-weight:600;margin-bottom:16px;font-size:0.95rem;">Speedup Factor</div>
+        <div class="chart-wrap">
+          <canvas id="speedupChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:24px;">
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Dataset Size</th>
+              <th>QuickTree (baseline)</th>
+              <th>QuickTree-Parallelism</th>
+              <th>Speedup</th>
+              <th>Time Saved</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1K taxa</td>
+              <td>0.38 s</td>
+              <td>0.64 s</td>
+              <td class="slower">0.59×</td>
+              <td class="slower">−0.26 s</td>
+            </tr>
+            <tr>
+              <td>5K taxa</td>
+              <td>34.61 s</td>
+              <td>8.86 s</td>
+              <td class="faster">3.91×</td>
+              <td class="faster">25.75 s saved</td>
+            </tr>
+            <tr>
+              <td>10K taxa</td>
+              <td>311.58 s</td>
+              <td>37.86 s</td>
+              <td class="faster">8.23×</td>
+              <td class="faster">273.72 s saved</td>
+            </tr>
+            <tr>
+              <td>20K taxa</td>
+              <td>3553.06 s</td>
+              <td>167.64 s</td>
+              <td class="faster">21.20×</td>
+              <td class="faster">3385.42 s saved</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Section 2: Correctness ── -->
+  <section>
+    <div class="section-title">Correctness</div>
+    <div class="section-sub">
+      Robinson-Foulds (RF) metrics between the parallelized output and the baseline QuickTree.
+      A lower RF distance and higher similarity indicate greater topological agreement.
+    </div>
+
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:16px;font-size:0.95rem;">
+        vs. Baseline QuickTree
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Taxa Size</th>
+              <th>RF Distance</th>
+              <th>Normalized RF</th>
+              <th>Similarity</th>
+              <th>Found Branches</th>
+              <th>Missed Branches</th>
+              <th>Extra Branches</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1K</td>
+              <td>5</td>
+              <td>0.002619</td>
+              <td class="sim">99.74%</td>
+              <td>910</td>
+              <td>3</td>
+              <td>2</td>
+            </tr>
+            <tr>
+              <td>5K</td>
+              <td>24</td>
+              <td>0.002505</td>
+              <td class="sim">99.75%</td>
+              <td>4,571</td>
+              <td>10</td>
+              <td>14</td>
+            </tr>
+            <tr>
+              <td>10K</td>
+              <td>26</td>
+              <td>0.001350</td>
+              <td class="sim">99.87%</td>
+              <td>9,250</td>
+              <td>9</td>
+              <td>17</td>
+            </tr>
+            <tr>
+              <td>20K</td>
+              <td>71</td>
+              <td>0.001838</td>
+              <td class="sim">99.82%</td>
+              <td>18,584</td>
+              <td>32</td>
+              <td>39</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:24px;">
+      <div style="font-weight:600;margin-bottom:16px;font-size:0.95rem;">
+        vs. Ground Truth (DIPPER AliSim)
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Taxa Size</th>
+              <th>Implementation</th>
+              <th>RF Distance</th>
+              <th>Normalized RF</th>
+              <th>Similarity</th>
+              <th>Found Branches</th>
+              <th>Missed Branches</th>
+              <th>Extra Branches</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td rowspan="2" style="border-right:1px solid var(--border);">10K</td>
+              <td>QuickTree</td>
+              <td>4,866</td>
+              <td>0.2527</td>
+              <td>74.73%</td>
+              <td>7,195</td>
+              <td>2,802</td>
+              <td>2,064</td>
+            </tr>
+            <tr>
+              <td>QuickTree-Parallelism</td>
+              <td>4,872</td>
+              <td>0.2529</td>
+              <td>74.71%</td>
+              <td>7,196</td>
+              <td>2,801</td>
+              <td>2,071</td>
+            </tr>
+            <tr>
+              <td rowspan="2" style="border-right:1px solid var(--border);">20K</td>
+              <td>QuickTree</td>
+              <td>9,559</td>
+              <td>0.2476</td>
+              <td>75.24%</td>
+              <td>14,527</td>
+              <td>5,470</td>
+              <td>4,089</td>
+            </tr>
+            <tr>
+              <td>QuickTree-Parallelism</td>
+              <td>9,568</td>
+              <td>0.2477</td>
+              <td>75.23%</td>
+              <td>14,526</td>
+              <td>5,471</td>
+              <td>4,097</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:14px;font-size:0.82rem;color:var(--muted);">
+        Both implementations achieve ~75% similarity to ground truth. The gap is expected — Mash
+        uses a sketch-based heuristic for distance estimation, introducing upstream error
+        regardless of the tree-building method.
+      </p>
+    </div>
+  </section>
+
+  <!---- Section 3: GPU Configuration ---->
+  <section>
+    <div class="section-title">GPU Configuration Experiments (10K dataset)</div>
+    <div class="section-sub">
+      Sensitivity of the <code style="color:var(--accent);background:rgba(108,142,251,0.1);padding:1px 6px;border-radius:4px;">findBlockMin</code>
+      kernel and overall runtime to CUDA block and grid parameters.
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div style="font-weight:600;margin-bottom:16px;font-size:0.95rem;">
+          findBlockMin Kernel Time vs. numBlocks
+          <span style="font-weight:400;color:var(--muted);font-size:0.8rem;"> (blockSize = 128)</span>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="blockMinChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="font-weight:600;margin-bottom:4px;font-size:0.95rem;">
+          Total Runtime — numBlocks × blockSize Grid
+        </div>
+        <p style="font-size:0.8rem;color:var(--muted);margin-bottom:16px;">
+          Values in seconds. Darker = faster.
+        </p>
+        <div class="tbl-wrap">
+          <table class="heat-table">
+            <thead>
+              <tr>
+                <th>numBlocks \ blockSize</th>
+                <th style="text-align:center;">32</th>
+                <th style="text-align:center;">128</th>
+                <th style="text-align:center;">512</th>
+              </tr>
+            </thead>
+            <tbody id="heatBody"></tbody>
+          </table>
+        </div>
+        <p style="margin-top:16px;font-size:0.82rem;color:var(--muted);">
+          Best configuration: <strong style="color:var(--green);">numBlocks=1024, blockSize=32</strong> (36.15 s).
+          Larger block sizes hurt parallel reduction efficiency; gains from more blocks plateau after 512.
+        </p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  ECE 213 · GPU-Accelerated Neighbor-Joining &nbsp;·&nbsp;
+  Hardware: NVIDIA A30 MIG 2g.12gb &nbsp;·&nbsp;
+  Dataset: DIPPER AliSim (1K – 20K taxa)
+</footer>
+
+<script>
+  /* ── Shared chart defaults ── */
+  Chart.defaults.color = '#8891b4';
+  Chart.defaults.borderColor = '#2e3250';
+  Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+
+  const labels = ['1K', '5K', '10K', '20K'];
+  const baselineTimes  = [0.38, 34.61, 311.58, 3553.06];
+  const parallelTimes  = [0.64,  8.86,  37.86,  167.64];
+  const speedups       = [0.594, 3.91,  8.23,   21.195];
+
+  /* ── 1. Execution time chart (log scale) ── */
+  new Chart(document.getElementById('timeChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'QuickTree (baseline)',
+          data: baselineTimes,
+          borderColor: '#f97316',
+          backgroundColor: 'rgba(249,115,22,0.1)',
+          pointBackgroundColor: '#f97316',
+          pointRadius: 5,
+          tension: 0.35,
+          fill: false,
+        },
+        {
+          label: 'QuickTree-Parallelism',
+          data: parallelTimes,
+          borderColor: '#6c8efb',
+          backgroundColor: 'rgba(108,142,251,0.1)',
+          pointBackgroundColor: '#6c8efb',
+          pointRadius: 5,
+          tension: 0.35,
+          fill: false,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          type: 'logarithmic',
+          title: { display: true, text: 'Time (s) — log scale', color: '#8891b4' },
+          grid: { color: '#2e3250' },
+          ticks: {
+            callback: v => v >= 1000 ? (v/1000).toFixed(0)+'K s' : v+' s',
+          },
+        },
+        x: { grid: { color: '#2e3250' } },
+      },
+      plugins: {
+        legend: { position: 'bottom' },
+        tooltip: {
+          callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y} s` },
+        },
+      },
+    },
+  });
+
+  /* ── 2. Speedup bar chart ── */
+  new Chart(document.getElementById('speedupChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Speedup',
+        data: speedups,
+        backgroundColor: speedups.map(v =>
+          v < 1 ? 'rgba(248,113,113,0.7)' : 'rgba(108,142,251,0.75)'
+        ),
+        borderColor: speedups.map(v =>
+          v < 1 ? '#f87171' : '#6c8efb'
+        ),
+        borderWidth: 1,
+        borderRadius: 6,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'Speedup (×)', color: '#8891b4' },
+          grid: { color: '#2e3250' },
+        },
+        x: { grid: { color: 'transparent' } },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: ctx => ` ${ctx.parsed.y}× speedup` },
+        },
+      },
+    },
+  });
+
+  /* ── 3. findBlockMin kernel chart ── */
+  const numBlocksLabels = [8, 16, 32, 64, 128, 256, 512, 1024];
+  const kernelTimes = [159705.387, 89844.117, 53655.546, 33978.532,
+                       31749.285, 32351.900, 28643.996, 28606.793];
+
+  new Chart(document.getElementById('blockMinChart'), {
+    type: 'line',
+    data: {
+      labels: numBlocksLabels,
+      datasets: [{
+        label: 'findBlockMin kernel time (ms)',
+        data: kernelTimes,
+        borderColor: '#34d399',
+        backgroundColor: 'rgba(52,211,153,0.1)',
+        pointBackgroundColor: '#34d399',
+        pointRadius: 5,
+        tension: 0.3,
+        fill: true,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          title: { display: true, text: 'Kernel Time (ms)', color: '#8891b4' },
+          grid: { color: '#2e3250' },
+        },
+        x: {
+          title: { display: true, text: 'numBlocks', color: '#8891b4' },
+          grid: { color: '#2e3250' },
+        },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: ctx => ` ${ctx.parsed.y.toLocaleString()} ms` },
+        },
+      },
+    },
+  });
+
+  /* ── 4. Heatmap table (GPU config grid) ── */
+  const heatData = [
+    { nb: 64,   vals: [95.53, 46.88, 40.66] },
+    { nb: 256,  vals: [42.44, 37.01, 45.09] },
+    { nb: 1024, vals: [36.15, 37.20, 44.92] },
+  ];
+  const allVals = heatData.flatMap(r => r.vals);
+  const minV = Math.min(...allVals);
+  const maxV = Math.max(...allVals);
+
+  function heatColor(v) {
+    const t = (v - minV) / (maxV - minV);
+    // green (fast) → red (slow)
+    const r = Math.round(52  + (248 - 52)  * t);
+    const g = Math.round(211 + (113 - 211) * t);
+    const b = Math.round(153 + (113 - 153) * t);
+    return `rgba(${r},${g},${b},0.25)`;
+  }
+  function textColor(v) {
+    const t = (v - minV) / (maxV - minV);
+    return t < 0.45 ? '#34d399' : t > 0.7 ? '#f87171' : '#e8eaf6';
+  }
+
+  const tbody = document.getElementById('heatBody');
+  heatData.forEach(row => {
+    const tr = document.createElement('tr');
+    const th = document.createElement('td');
+    th.textContent = row.nb;
+    th.style.fontWeight = '600';
+    tr.appendChild(th);
+    row.vals.forEach(v => {
+      const td = document.createElement('td');
+      td.className = 'cell';
+      td.textContent = v.toFixed(2) + ' s';
+      td.style.background = heatColor(v);
+      td.style.color = textColor(v);
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+</script>
+</body>
+</html>
