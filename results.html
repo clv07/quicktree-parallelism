@@ -3,470 +3,388 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>QuickTree Parallelism — Results</title>
+  <meta name="color-scheme" content="light dark" />
+  <title>QuickTree Parallelism · Results</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+    /* ───────────── Tokens ───────────── */
     :root {
-      --bg: #0f1117;
-      --surface: #1a1d27;
-      --surface2: #22263a;
-      --border: #2e3250;
-      --accent: #6c8efb;
-      --accent2: #f97316;
-      --text: #e8eaf6;
-      --muted: #8891b4;
-      --green: #34d399;
-      --radius: 12px;
+      --bg: #f5f5f7;
+      --bg-elevated: #ffffff;
+      --fill: rgba(120, 120, 128, 0.08);
+      --label: #1d1d1f;
+      --label-2: #6e6e73;
+      --label-3: #86868b;
+      --separator: rgba(60, 60, 67, 0.14);
+      --accent: #0071e3;
+      --green: #248a3d;
+      --green-fill: rgba(52, 199, 89, 0.14);
+      --orange: #c93400;
+      --red: #d70015;
+      --red-fill: rgba(255, 59, 48, 0.12);
+      --chart-a: #0071e3;
+      --chart-b: #ff9500;
+      --chart-c: #34c759;
+      --chart-grid: rgba(60, 60, 67, 0.10);
+      --material: rgba(255, 255, 255, 0.72);
+      --specular: rgba(255, 255, 255, 0.85);
+      --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 28px rgba(0, 0, 0, 0.06);
+      --radius-lg: 22px;
+      --radius-md: 14px;
+      --radius-sm: 8px;
+      --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px;
+      --space-6: 32px; --space-7: 48px; --space-8: 64px; --space-9: 96px;
+      --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+              "Helvetica Neue", Helvetica, Arial, sans-serif;
+      --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #000000;
+        --bg-elevated: #1c1c1e;
+        --fill: rgba(120, 120, 128, 0.20);
+        --label: #f5f5f7;
+        --label-2: #a1a1a6;
+        --label-3: #8e8e93;
+        --separator: rgba(84, 84, 88, 0.55);
+        --accent: #2997ff;
+        --green: #30d158;
+        --green-fill: rgba(48, 209, 88, 0.16);
+        --orange: #ff9f0a;
+        --red: #ff453a;
+        --red-fill: rgba(255, 69, 58, 0.16);
+        --chart-a: #2997ff;
+        --chart-b: #ff9f0a;
+        --chart-c: #30d158;
+        --chart-grid: rgba(255, 255, 255, 0.08);
+        --material: rgba(28, 28, 30, 0.72);
+        --specular: rgba(255, 255, 255, 0.12);
+        --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 8px 28px rgba(0, 0, 0, 0.5);
+      }
     }
 
+    /* ───────────── Base ───────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; scroll-padding-top: 72px; }
     body {
       background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      line-height: 1.6;
+      color: var(--label);
+      font-family: var(--font);
+      font-optical-sizing: auto;
+      font-size: 17px;
+      line-height: 1.47;
+      letter-spacing: -0.022em;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
     }
+    .num { font-variant-numeric: tabular-nums; }
+    a { color: var(--accent); text-decoration: none; }
+    :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
 
-    /* ── Header ── */
-    header {
-      background: linear-gradient(135deg, #1a1d27 0%, #12162a 100%);
-      border-bottom: 1px solid var(--border);
-      padding: 60px 24px 50px;
-      text-align: center;
+    /* ───────────── Glass nav ───────────── */
+    .nav {
+      position: sticky; top: 0; z-index: 10;
+      background: var(--material);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      backdrop-filter: saturate(180%) blur(20px);
+      box-shadow: inset 0 1px 0 var(--specular), 0 1px 0 var(--separator);
     }
-    .tag {
-      display: inline-block;
-      background: rgba(108,142,251,0.15);
-      color: var(--accent);
-      border: 1px solid rgba(108,142,251,0.35);
-      border-radius: 999px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      padding: 4px 14px;
-      margin-bottom: 18px;
+    .nav-inner {
+      max-width: 1024px; margin: 0 auto; height: 52px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 var(--space-5);
     }
-    header h1 {
-      font-size: clamp(2rem, 5vw, 3.2rem);
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      margin-bottom: 14px;
+    .nav-title { font-size: 17px; font-weight: 600; letter-spacing: -0.022em; color: var(--label); }
+    .nav-links { display: flex; gap: var(--space-2); }
+    .nav-links a {
+      font-size: 14px; letter-spacing: -0.01em; color: var(--label-2);
+      padding: 6px 12px; border-radius: 999px; min-height: 32px;
+      display: inline-flex; align-items: center;
+      transition: color 0.2s var(--ease-out), background 0.2s var(--ease-out);
     }
-    header h1 span { color: var(--accent); }
-    header p {
-      color: var(--muted);
-      max-width: 620px;
-      margin: 0 auto 36px;
-      font-size: 1.05rem;
-    }
+    .nav-links a:hover { color: var(--label); background: var(--fill); }
+    .nav-links a:active { background: var(--separator); }
 
-    /* ── KPI strip ── */
+    /* ───────────── Hero ───────────── */
+    header { padding: var(--space-9) var(--space-5) var(--space-8); text-align: center; }
+    .eyebrow {
+      font-size: 14px; font-weight: 600; letter-spacing: -0.01em;
+      color: var(--orange); margin-bottom: var(--space-3);
+    }
+    h1 {
+      font-size: clamp(40px, 7vw, 72px); font-weight: 700;
+      line-height: 1.05; letter-spacing: -0.03em; margin-bottom: var(--space-4);
+    }
+    .lede {
+      max-width: 640px; margin: 0 auto; color: var(--label-2);
+      font-size: clamp(19px, 2.2vw, 21px); line-height: 1.38; letter-spacing: -0.02em;
+    }
     .kpis {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 16px;
-      max-width: 900px;
-      margin: 0 auto;
+      max-width: 1024px; margin: var(--space-7) auto 0;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--space-4);
     }
     .kpi {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 20px 28px;
-      min-width: 170px;
-      flex: 1 1 170px;
+      background: var(--bg-elevated); border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card); padding: var(--space-5) var(--space-5) 22px;
+      text-align: left;
     }
     .kpi-value {
-      font-size: 2.1rem;
-      font-weight: 700;
-      color: var(--accent);
-      line-height: 1;
+      font-size: 44px; font-weight: 700; line-height: 1.05; letter-spacing: -0.03em;
+      font-variant-numeric: tabular-nums;
     }
-    .kpi-value.orange { color: var(--accent2); }
-    .kpi-value.green  { color: var(--green); }
-    .kpi-label {
-      font-size: 0.8rem;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-top: 6px;
-    }
+    .kpi-value.orange { color: var(--orange); }
+    .kpi-value.blue { color: var(--accent); }
+    .kpi-value.green { color: var(--green); }
+    .kpi-value.plain { font-size: 28px; letter-spacing: -0.02em; line-height: 1.2; padding-top: 8px; }
+    .kpi-label { margin-top: var(--space-2); font-size: 14px; color: var(--label-2); letter-spacing: -0.01em; line-height: 1.35; }
 
-    /* ── Main layout ── */
+    /* ───────────── Sections ───────────── */
     main {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 56px 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 56px;
+      max-width: 1024px; margin: 0 auto; padding: 0 var(--space-5) var(--space-9);
+      display: flex; flex-direction: column; gap: var(--space-9);
     }
-
-    /* ── Section titles ── */
-    .section-title {
-      font-size: 1.25rem;
-      font-weight: 600;
-      margin-bottom: 6px;
-    }
-    .section-sub {
-      color: var(--muted);
-      font-size: 0.9rem;
-      margin-bottom: 24px;
-    }
-
-    /* ── Card ── */
+    .section-title { font-size: clamp(28px, 4vw, 40px); font-weight: 700; line-height: 1.1; letter-spacing: -0.025em; }
+    .section-sub { margin: var(--space-3) 0 var(--space-6); max-width: 680px; color: var(--label-2); }
     .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 28px;
+      background: var(--bg-elevated); border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card); padding: var(--space-6);
+    }
+    section > .card + .card { margin-top: var(--space-5); }
+    .card-title { font-size: 19px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: var(--space-4); }
+    .card-title .note { font-weight: 400; color: var(--label-2); font-size: 15px; letter-spacing: -0.015em; }
+    .card-note { margin-top: var(--space-4); font-size: 14px; line-height: 1.43; color: var(--label-2); letter-spacing: -0.01em; }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: var(--space-5); }
+    .grid-2 > *, main > section { min-width: 0; }
+    .grid-2 + .card { margin-top: var(--space-5); }
+    .chart-wrap { position: relative; height: 300px; }
+    code {
+      font-family: var(--font-mono); font-size: 0.88em; letter-spacing: 0;
+      color: var(--label); background: var(--fill); padding: 2px 6px; border-radius: 6px;
     }
 
-    /* ── Grid layouts ── */
-    .grid-2 {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
-      gap: 24px;
-    }
-
-    /* ── Charts ── */
-    .chart-wrap {
-      position: relative;
-      height: 300px;
-    }
-
-    /* ── Tables ── */
-    .tbl-wrap { overflow-x: auto; }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.88rem;
-    }
-    thead tr {
-      background: var(--surface2);
-    }
+    /* ───────────── Tables ───────────── */
+    .tbl-wrap { overflow-x: auto; margin: 0 calc(-1 * var(--space-2)); }
+    table { width: 100%; border-collapse: collapse; font-size: 15px; letter-spacing: -0.015em; }
     th {
-      text-align: left;
-      padding: 10px 14px;
-      color: var(--muted);
-      font-weight: 600;
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      border-bottom: 1px solid var(--border);
-      white-space: nowrap;
+      text-align: left; padding: 10px 12px; font-size: 13px; font-weight: 600;
+      letter-spacing: -0.005em; color: var(--label-3); white-space: nowrap;
+      border-bottom: 1px solid var(--separator);
     }
     td {
-      padding: 10px 14px;
-      border-bottom: 1px solid rgba(46,50,80,0.5);
-      white-space: nowrap;
+      padding: 12px; white-space: nowrap; font-variant-numeric: tabular-nums;
+      border-bottom: 1px solid var(--separator);
     }
     tbody tr:last-child td { border-bottom: none; }
-    tbody tr:hover { background: rgba(108,142,251,0.05); }
+    td.group { font-weight: 600; vertical-align: top; }
     .faster { color: var(--green); font-weight: 600; }
-    .slower { color: #f87171; font-weight: 600; }
-    .sim    { color: var(--green); }
+    .slower { color: var(--red); font-weight: 600; }
+    .sim { color: var(--green); }
+    .best { color: var(--green); font-weight: 600; }
 
-    /* ── Config heatmap table ── */
-    .heat-table td.cell {
-      text-align: center;
-      font-weight: 600;
-      border-radius: 6px;
+    .heat-table th:not(:first-child), .heat-table td.cell { text-align: center; }
+    .heat-table td.cell span {
+      display: inline-block; min-width: 84px; padding: 6px 10px;
+      border-radius: var(--radius-sm); font-weight: 600;
     }
 
-    /* ── Footer ── */
+    /* ───────────── Footer ───────────── */
     footer {
-      text-align: center;
-      padding: 32px;
-      color: var(--muted);
-      font-size: 0.82rem;
-      border-top: 1px solid var(--border);
+      max-width: 1024px; margin: 0 auto; padding: var(--space-5);
+      border-top: 1px solid var(--separator);
+      font-size: 12px; letter-spacing: 0; line-height: 1.33; color: var(--label-3); text-align: center;
+    }
+
+    /* ───────────── Motion (restrained) ───────────── */
+    .reveal { opacity: 0; transform: translateY(16px); transition: opacity 0.7s var(--ease-out), transform 0.7s var(--ease-out); }
+    .reveal.in { opacity: 1; transform: none; }
+
+    /* ───────────── Accessibility ───────────── */
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .reveal { transform: none; transition: opacity 0.2s linear; }
+    }
+    @media (prefers-reduced-transparency: reduce) {
+      .nav { background: var(--bg-elevated); -webkit-backdrop-filter: none; backdrop-filter: none; }
+    }
+    @media (prefers-contrast: more) {
+      .card, .kpi { box-shadow: none; border: 1px solid var(--label-3); }
+      .nav { box-shadow: 0 1px 0 var(--label-3); }
+    }
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .card { padding: var(--space-5); }
+      .grid-2 { grid-template-columns: 1fr; }
+      .kpi-value { font-size: 36px; }
     }
   </style>
 </head>
 <body>
 
-<!--------------------- HEADER --------------------->
-<header>
-  <div class="tag">ECE 213 · GPU Computing Project</div>
-  <h1>QuickTree <span>Parallelism</span></h1>
-  <p>
+<nav class="nav" aria-label="Sections">
+  <div class="nav-inner">
+    <a class="nav-title" href="#top">QuickTree Parallelism</a>
+    <div class="nav-links">
+      <a href="#performance">Performance</a>
+      <a href="#correctness">Correctness</a>
+      <a href="#gpu-config">GPU config</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ───────────── Hero ───────────── -->
+<header id="top">
+  <div class="eyebrow">ECE 213 · GPU Computing Project</div>
+  <h1>QuickTree Parallelism</h1>
+  <p class="lede">
     GPU-accelerated Neighbor-Joining phylogenetic tree construction using CUDA,
     benchmarked against the sequential QuickTree baseline on the DIPPER AliSim dataset.
   </p>
 
   <div class="kpis">
-    <div class="kpi">
+    <div class="kpi reveal">
       <div class="kpi-value orange">21.2×</div>
-      <div class="kpi-label">Peak Speedup (20K taxa)</div>
+      <div class="kpi-label">Peak speedup at 20K taxa</div>
     </div>
-    <div class="kpi">
-      <div class="kpi-value">8.23×</div>
+    <div class="kpi reveal">
+      <div class="kpi-value blue">8.23×</div>
       <div class="kpi-label">Speedup at 10K taxa</div>
     </div>
-    <div class="kpi">
+    <div class="kpi reveal">
       <div class="kpi-value green">99.8%</div>
-      <div class="kpi-label">Avg. similarity to baseline</div>
+      <div class="kpi-label">Average similarity to the baseline tree</div>
     </div>
-    <div class="kpi">
-      <div class="kpi-value" style="color:var(--muted);font-size:1.3rem;">NVIDIA A30</div>
+    <div class="kpi reveal">
+      <div class="kpi-value plain">NVIDIA A30</div>
       <div class="kpi-label">MIG 2g.12gb · 466 GB/s</div>
     </div>
   </div>
 </header>
 
-<!------------------- MAIN -------------------->
 <main>
 
-  <!-- Section 1: Execution time + Speedup -->
-  <section>
-    <div class="section-title">Performance</div>
-    <div class="section-sub">
-      Total execution time and speedup vs. the sequential QuickTree baseline across dataset sizes.
-    </div>
+  <!-- ───────────── 1. Performance ───────────── -->
+  <section id="performance">
+    <h2 class="section-title">Performance</h2>
+    <p class="section-sub">Total execution time and speedup vs. the sequential QuickTree baseline across dataset sizes.</p>
 
     <div class="grid-2">
-      <div class="card">
-        <div style="font-weight:600;margin-bottom:16px;font-size:0.95rem;">Execution Time (seconds)</div>
-        <div class="chart-wrap">
-          <canvas id="timeChart"></canvas>
-        </div>
+      <div class="card reveal">
+        <div class="card-title">Execution time <span class="note">seconds, log scale</span></div>
+        <div class="chart-wrap"><canvas id="timeChart" aria-label="Execution time chart"></canvas></div>
       </div>
-      <div class="card">
-        <div style="font-weight:600;margin-bottom:16px;font-size:0.95rem;">Speedup Factor</div>
-        <div class="chart-wrap">
-          <canvas id="speedupChart"></canvas>
-        </div>
+      <div class="card reveal">
+        <div class="card-title">Speedup factor</div>
+        <div class="chart-wrap"><canvas id="speedupChart" aria-label="Speedup chart"></canvas></div>
       </div>
     </div>
 
-    <div class="card" style="margin-top:24px;">
+    <div class="card reveal">
       <div class="tbl-wrap">
         <table>
           <thead>
             <tr>
-              <th>Dataset Size</th>
+              <th>Dataset size</th>
               <th>QuickTree (baseline)</th>
               <th>QuickTree-Parallelism</th>
               <th>Speedup</th>
-              <th>Time Saved</th>
+              <th>Time saved</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>1K taxa</td>
-              <td>0.38 s</td>
-              <td>0.64 s</td>
-              <td class="slower">0.59×</td>
-              <td class="slower">−0.26 s</td>
-            </tr>
-            <tr>
-              <td>5K taxa</td>
-              <td>34.61 s</td>
-              <td>8.86 s</td>
-              <td class="faster">3.91×</td>
-              <td class="faster">25.75 s saved</td>
-            </tr>
-            <tr>
-              <td>10K taxa</td>
-              <td>311.58 s</td>
-              <td>37.86 s</td>
-              <td class="faster">8.23×</td>
-              <td class="faster">273.72 s saved</td>
-            </tr>
-            <tr>
-              <td>20K taxa</td>
-              <td>3553.06 s</td>
-              <td>167.64 s</td>
-              <td class="faster">21.20×</td>
-              <td class="faster">3385.42 s saved</td>
-            </tr>
+            <tr><td>1K taxa</td><td>0.38 s</td><td>0.64 s</td><td class="slower">0.59×</td><td class="slower">−0.26 s</td></tr>
+            <tr><td>5K taxa</td><td>34.61 s</td><td>8.86 s</td><td class="faster">3.91×</td><td class="faster">25.75 s saved</td></tr>
+            <tr><td>10K taxa</td><td>311.58 s</td><td>37.86 s</td><td class="faster">8.23×</td><td class="faster">273.72 s saved</td></tr>
+            <tr><td>20K taxa</td><td>3,553.06 s</td><td>167.64 s</td><td class="faster">21.20×</td><td class="faster">3,385.42 s saved</td></tr>
           </tbody>
         </table>
       </div>
     </div>
   </section>
 
-  <!-- ── Section 2: Correctness ── -->
-  <section>
-    <div class="section-title">Correctness</div>
-    <div class="section-sub">
+  <!-- ───────────── 2. Correctness ───────────── -->
+  <section id="correctness">
+    <h2 class="section-title">Correctness</h2>
+    <p class="section-sub">
       Robinson-Foulds (RF) metrics between the parallelized output and the baseline QuickTree.
       A lower RF distance and higher similarity indicate greater topological agreement.
-    </div>
+    </p>
 
-    <div class="card">
-      <div style="font-weight:600;margin-bottom:16px;font-size:0.95rem;">
-        vs. Baseline QuickTree
-      </div>
+    <div class="card reveal">
+      <div class="card-title">vs. baseline QuickTree</div>
       <div class="tbl-wrap">
         <table>
           <thead>
             <tr>
-              <th>Taxa Size</th>
-              <th>RF Distance</th>
-              <th>Normalized RF</th>
-              <th>Similarity</th>
-              <th>Found Branches</th>
-              <th>Missed Branches</th>
-              <th>Extra Branches</th>
+              <th>Taxa size</th><th>RF distance</th><th>Normalized RF</th><th>Similarity</th>
+              <th>Found branches</th><th>Missed branches</th><th>Extra branches</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>1K</td>
-              <td>5</td>
-              <td>0.002619</td>
-              <td class="sim">99.74%</td>
-              <td>910</td>
-              <td>3</td>
-              <td>2</td>
-            </tr>
-            <tr>
-              <td>5K</td>
-              <td>24</td>
-              <td>0.002505</td>
-              <td class="sim">99.75%</td>
-              <td>4,571</td>
-              <td>10</td>
-              <td>14</td>
-            </tr>
-            <tr>
-              <td>10K</td>
-              <td>26</td>
-              <td>0.001350</td>
-              <td class="sim">99.87%</td>
-              <td>9,250</td>
-              <td>9</td>
-              <td>17</td>
-            </tr>
-            <tr>
-              <td>20K</td>
-              <td>71</td>
-              <td>0.001838</td>
-              <td class="sim">99.82%</td>
-              <td>18,584</td>
-              <td>32</td>
-              <td>39</td>
-            </tr>
+            <tr><td>1K</td><td>5</td><td>0.002619</td><td class="sim">99.74%</td><td>910</td><td>3</td><td>2</td></tr>
+            <tr><td>5K</td><td>24</td><td>0.002505</td><td class="sim">99.75%</td><td>4,571</td><td>10</td><td>14</td></tr>
+            <tr><td>10K</td><td>26</td><td>0.001350</td><td class="sim">99.87%</td><td>9,250</td><td>9</td><td>17</td></tr>
+            <tr><td>20K</td><td>71</td><td>0.001838</td><td class="sim">99.82%</td><td>18,584</td><td>32</td><td>39</td></tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <div class="card" style="margin-top:24px;">
-      <div style="font-weight:600;margin-bottom:16px;font-size:0.95rem;">
-        vs. Ground Truth (DIPPER AliSim)
-      </div>
+    <div class="card reveal">
+      <div class="card-title">vs. ground truth (DIPPER AliSim)</div>
       <div class="tbl-wrap">
         <table>
           <thead>
             <tr>
-              <th>Taxa Size</th>
-              <th>Implementation</th>
-              <th>RF Distance</th>
-              <th>Normalized RF</th>
-              <th>Similarity</th>
-              <th>Found Branches</th>
-              <th>Missed Branches</th>
-              <th>Extra Branches</th>
+              <th>Taxa size</th><th>Implementation</th><th>RF distance</th><th>Normalized RF</th>
+              <th>Similarity</th><th>Found branches</th><th>Missed branches</th><th>Extra branches</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td rowspan="2" style="border-right:1px solid var(--border);">10K</td>
-              <td>QuickTree</td>
-              <td>4,866</td>
-              <td>0.2527</td>
-              <td>74.73%</td>
-              <td>7,195</td>
-              <td>2,802</td>
-              <td>2,064</td>
-            </tr>
-            <tr>
-              <td>QuickTree-Parallelism</td>
-              <td>4,872</td>
-              <td>0.2529</td>
-              <td>74.71%</td>
-              <td>7,196</td>
-              <td>2,801</td>
-              <td>2,071</td>
-            </tr>
-            <tr>
-              <td rowspan="2" style="border-right:1px solid var(--border);">20K</td>
-              <td>QuickTree</td>
-              <td>9,559</td>
-              <td>0.2476</td>
-              <td>75.24%</td>
-              <td>14,527</td>
-              <td>5,470</td>
-              <td>4,089</td>
-            </tr>
-            <tr>
-              <td>QuickTree-Parallelism</td>
-              <td>9,568</td>
-              <td>0.2477</td>
-              <td>75.23%</td>
-              <td>14,526</td>
-              <td>5,471</td>
-              <td>4,097</td>
-            </tr>
+            <tr><td class="group" rowspan="2">10K</td><td>QuickTree</td><td>4,866</td><td>0.2527</td><td>74.73%</td><td>7,195</td><td>2,802</td><td>2,064</td></tr>
+            <tr><td>QuickTree-Parallelism</td><td>4,872</td><td>0.2529</td><td>74.71%</td><td>7,196</td><td>2,801</td><td>2,071</td></tr>
+            <tr><td class="group" rowspan="2">20K</td><td>QuickTree</td><td>9,559</td><td>0.2476</td><td>75.24%</td><td>14,527</td><td>5,470</td><td>4,089</td></tr>
+            <tr><td>QuickTree-Parallelism</td><td>9,568</td><td>0.2477</td><td>75.23%</td><td>14,526</td><td>5,471</td><td>4,097</td></tr>
           </tbody>
         </table>
       </div>
-      <p style="margin-top:14px;font-size:0.82rem;color:var(--muted);">
-        Both implementations achieve ~75% similarity to ground truth. The gap is expected — Mash
-        uses a sketch-based heuristic for distance estimation, introducing upstream error
-        regardless of the tree-building method.
+      <p class="card-note">
+        Both implementations reach about 75% similarity to ground truth. The gap is expected: Mash
+        uses a sketch-based heuristic to estimate distances, which adds upstream error regardless of
+        the tree-building method.
       </p>
     </div>
   </section>
 
-  <!---- Section 3: GPU Configuration ---->
-  <section>
-    <div class="section-title">GPU Configuration Experiments (10K dataset)</div>
-    <div class="section-sub">
-      Sensitivity of the <code style="color:var(--accent);background:rgba(108,142,251,0.1);padding:1px 6px;border-radius:4px;">findBlockMin</code>
-      kernel and overall runtime to CUDA block and grid parameters.
-    </div>
+  <!-- ───────────── 3. GPU configuration ───────────── -->
+  <section id="gpu-config">
+    <h2 class="section-title">GPU configuration</h2>
+    <p class="section-sub">
+      Sensitivity of the <code>findBlockMin</code> kernel and overall runtime to CUDA block and grid
+      parameters, on the 10K dataset.
+    </p>
 
     <div class="grid-2">
-      <div class="card">
-        <div style="font-weight:600;margin-bottom:16px;font-size:0.95rem;">
-          findBlockMin Kernel Time vs. numBlocks
-          <span style="font-weight:400;color:var(--muted);font-size:0.8rem;"> (blockSize = 128)</span>
-        </div>
-        <div class="chart-wrap">
-          <canvas id="blockMinChart"></canvas>
-        </div>
+      <div class="card reveal">
+        <div class="card-title">findBlockMin kernel time <span class="note">blockSize = 128</span></div>
+        <div class="chart-wrap"><canvas id="blockMinChart" aria-label="findBlockMin kernel time chart"></canvas></div>
       </div>
 
-      <div class="card">
-        <div style="font-weight:600;margin-bottom:4px;font-size:0.95rem;">
-          Total Runtime — numBlocks × blockSize Grid
-        </div>
-        <p style="font-size:0.8rem;color:var(--muted);margin-bottom:16px;">
-          Values in seconds. Darker = faster.
-        </p>
+      <div class="card reveal">
+        <div class="card-title">Total runtime <span class="note">numBlocks × blockSize, seconds</span></div>
         <div class="tbl-wrap">
           <table class="heat-table">
             <thead>
-              <tr>
-                <th>numBlocks \ blockSize</th>
-                <th style="text-align:center;">32</th>
-                <th style="text-align:center;">128</th>
-                <th style="text-align:center;">512</th>
-              </tr>
+              <tr><th>numBlocks</th><th>32</th><th>128</th><th>512</th></tr>
             </thead>
             <tbody id="heatBody"></tbody>
           </table>
         </div>
-        <p style="margin-top:16px;font-size:0.82rem;color:var(--muted);">
-          Best configuration: <strong style="color:var(--green);">numBlocks=1024, blockSize=32</strong> (36.15 s).
-          Larger block sizes hurt parallel reduction efficiency; gains from more blocks plateau after 512.
+        <p class="card-note">
+          Best configuration: <span class="best">numBlocks = 1024, blockSize = 32</span> (36.15 s).
+          Larger block sizes hurt parallel reduction efficiency, and gains from more blocks level off after 512.
+          Greener cells are faster.
         </p>
       </div>
     </div>
@@ -475,193 +393,162 @@
 </main>
 
 <footer>
-  ECE 213 · GPU-Accelerated Neighbor-Joining &nbsp;·&nbsp;
-  Hardware: NVIDIA A30 MIG 2g.12gb &nbsp;·&nbsp;
-  Dataset: DIPPER AliSim (1K – 20K taxa)
+  ECE 213 · GPU-Accelerated Neighbor-Joining · Hardware: NVIDIA A30 MIG 2g.12gb · Dataset: DIPPER AliSim (1K to 20K taxa)
 </footer>
 
 <script>
-  /* ── Shared chart defaults ── */
-  Chart.defaults.color = '#8891b4';
-  Chart.defaults.borderColor = '#2e3250';
-  Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  /* ── Theme-aware colors, read from the CSS tokens ── */
+  const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const alpha = (hex, a) => {
+    const h = hex.replace('#', '');
+    const n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+  };
+  const theme = () => ({
+    a: css('--chart-a'), b: css('--chart-b'), c: css('--chart-c'),
+    red: css('--red'), grid: css('--chart-grid'), text: css('--label-2'), label: css('--label'),
+    green: css('--green'), greenFill: css('--green-fill'), redFill: css('--red-fill'),
+  });
 
+  /* ── Data ── */
   const labels = ['1K', '5K', '10K', '20K'];
-  const baselineTimes  = [0.38, 34.61, 311.58, 3553.06];
-  const parallelTimes  = [0.64,  8.86,  37.86,  167.64];
-  const speedups       = [0.594, 3.91,  8.23,   21.195];
-
-  /* ── 1. Execution time chart (log scale) ── */
-  new Chart(document.getElementById('timeChart'), {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        {
-          label: 'QuickTree (baseline)',
-          data: baselineTimes,
-          borderColor: '#f97316',
-          backgroundColor: 'rgba(249,115,22,0.1)',
-          pointBackgroundColor: '#f97316',
-          pointRadius: 5,
-          tension: 0.35,
-          fill: false,
-        },
-        {
-          label: 'QuickTree-Parallelism',
-          data: parallelTimes,
-          borderColor: '#6c8efb',
-          backgroundColor: 'rgba(108,142,251,0.1)',
-          pointBackgroundColor: '#6c8efb',
-          pointRadius: 5,
-          tension: 0.35,
-          fill: false,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: {
-          type: 'logarithmic',
-          title: { display: true, text: 'Time (s) — log scale', color: '#8891b4' },
-          grid: { color: '#2e3250' },
-          ticks: {
-            callback: v => v >= 1000 ? (v/1000).toFixed(0)+'K s' : v+' s',
-          },
-        },
-        x: { grid: { color: '#2e3250' } },
-      },
-      plugins: {
-        legend: { position: 'bottom' },
-        tooltip: {
-          callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y} s` },
-        },
-      },
-    },
-  });
-
-  /* ── 2. Speedup bar chart ── */
-  new Chart(document.getElementById('speedupChart'), {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        label: 'Speedup',
-        data: speedups,
-        backgroundColor: speedups.map(v =>
-          v < 1 ? 'rgba(248,113,113,0.7)' : 'rgba(108,142,251,0.75)'
-        ),
-        borderColor: speedups.map(v =>
-          v < 1 ? '#f87171' : '#6c8efb'
-        ),
-        borderWidth: 1,
-        borderRadius: 6,
-      }],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: {
-          beginAtZero: true,
-          title: { display: true, text: 'Speedup (×)', color: '#8891b4' },
-          grid: { color: '#2e3250' },
-        },
-        x: { grid: { color: 'transparent' } },
-      },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: { label: ctx => ` ${ctx.parsed.y}× speedup` },
-        },
-      },
-    },
-  });
-
-  /* ── 3. findBlockMin kernel chart ── */
+  const baselineTimes = [0.38, 34.61, 311.58, 3553.06];
+  const parallelTimes = [0.64, 8.86, 37.86, 167.64];
+  const speedups = [0.594, 3.91, 8.23, 21.195];
   const numBlocksLabels = [8, 16, 32, 64, 128, 256, 512, 1024];
-  const kernelTimes = [159705.387, 89844.117, 53655.546, 33978.532,
-                       31749.285, 32351.900, 28643.996, 28606.793];
-
-  new Chart(document.getElementById('blockMinChart'), {
-    type: 'line',
-    data: {
-      labels: numBlocksLabels,
-      datasets: [{
-        label: 'findBlockMin kernel time (ms)',
-        data: kernelTimes,
-        borderColor: '#34d399',
-        backgroundColor: 'rgba(52,211,153,0.1)',
-        pointBackgroundColor: '#34d399',
-        pointRadius: 5,
-        tension: 0.3,
-        fill: true,
-      }],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: {
-          title: { display: true, text: 'Kernel Time (ms)', color: '#8891b4' },
-          grid: { color: '#2e3250' },
-        },
-        x: {
-          title: { display: true, text: 'numBlocks', color: '#8891b4' },
-          grid: { color: '#2e3250' },
-        },
-      },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: { label: ctx => ` ${ctx.parsed.y.toLocaleString()} ms` },
-        },
-      },
-    },
-  });
-
-  /* ── 4. Heatmap table (GPU config grid) ── */
+  const kernelTimes = [159705.387, 89844.117, 53655.546, 33978.532, 31749.285, 32351.900, 28643.996, 28606.793];
   const heatData = [
     { nb: 64,   vals: [95.53, 46.88, 40.66] },
     { nb: 256,  vals: [42.44, 37.01, 45.09] },
     { nb: 1024, vals: [36.15, 37.20, 44.92] },
   ];
-  const allVals = heatData.flatMap(r => r.vals);
-  const minV = Math.min(...allVals);
-  const maxV = Math.max(...allVals);
 
-  function heatColor(v) {
-    const t = (v - minV) / (maxV - minV);
-    // green (fast) → red (slow)
-    const r = Math.round(52  + (248 - 52)  * t);
-    const g = Math.round(211 + (113 - 211) * t);
-    const b = Math.round(153 + (113 - 153) * t);
-    return `rgba(${r},${g},${b},0.25)`;
-  }
-  function textColor(v) {
-    const t = (v - minV) / (maxV - minV);
-    return t < 0.45 ? '#34d399' : t > 0.7 ? '#f87171' : '#e8eaf6';
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const charts = [];
+
+  function baseOptions(t) {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: reduceMotion ? false : { duration: 700, easing: 'easeOutQuart' },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'bottom', labels: { color: t.text, usePointStyle: true, pointStyle: 'circle', boxWidth: 8, boxHeight: 8, pointStyleWidth: 8, padding: 16 } },
+        tooltip: {
+          backgroundColor: t.label, titleColor: css('--bg-elevated'), bodyColor: css('--bg-elevated'),
+          padding: 10, cornerRadius: 10, displayColors: false,
+        },
+      },
+    };
   }
 
-  const tbody = document.getElementById('heatBody');
-  heatData.forEach(row => {
-    const tr = document.createElement('tr');
-    const th = document.createElement('td');
-    th.textContent = row.nb;
-    th.style.fontWeight = '600';
-    tr.appendChild(th);
-    row.vals.forEach(v => {
-      const td = document.createElement('td');
-      td.className = 'cell';
-      td.textContent = v.toFixed(2) + ' s';
-      td.style.background = heatColor(v);
-      td.style.color = textColor(v);
-      tr.appendChild(td);
+  function buildCharts() {
+    charts.splice(0).forEach(c => c.destroy());
+    const t = theme();
+    Chart.defaults.font.family = css('--font');
+    Chart.defaults.font.size = 13;
+    Chart.defaults.color = t.text;
+
+    const axis = (title, extra = {}) => ({
+      grid: { color: t.grid, drawTicks: false },
+      border: { display: false },
+      ticks: { color: t.text, padding: 8 },
+      title: title ? { display: true, text: title, color: t.text } : { display: false },
+      ...extra,
     });
-    tbody.appendChild(tr);
-  });
+
+    // 1. Execution time (log scale)
+    const o1 = baseOptions(t);
+    o1.scales = {
+      y: axis('Time (s)', { type: 'logarithmic', ticks: { color: t.text, padding: 8, callback: v => v >= 1000 ? (v / 1000).toFixed(0) + 'K s' : v + ' s' } }),
+      x: axis('', { grid: { display: false } }),
+    };
+    o1.plugins.tooltip.callbacks = { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y} s` };
+    charts.push(new Chart(document.getElementById('timeChart'), {
+      type: 'line',
+      data: { labels, datasets: [
+        { label: 'QuickTree (baseline)', data: baselineTimes, borderColor: t.b, backgroundColor: t.b, pointRadius: 4, pointHoverRadius: 6, borderWidth: 2.5, tension: 0.35 },
+        { label: 'QuickTree-Parallelism', data: parallelTimes, borderColor: t.a, backgroundColor: t.a, pointRadius: 4, pointHoverRadius: 6, borderWidth: 2.5, tension: 0.35 },
+      ] },
+      options: o1,
+    }));
+
+    // 2. Speedup bars
+    const o2 = baseOptions(t);
+    o2.plugins.legend = { display: false };
+    o2.plugins.tooltip.callbacks = { label: ctx => `${ctx.parsed.y}× speedup` };
+    o2.scales = { y: axis('Speedup (×)', { beginAtZero: true }), x: axis('', { grid: { display: false } }) };
+    charts.push(new Chart(document.getElementById('speedupChart'), {
+      type: 'bar',
+      data: { labels, datasets: [{
+        label: 'Speedup', data: speedups,
+        backgroundColor: speedups.map(v => v < 1 ? alpha(t.red, 0.85) : alpha(t.a, 0.9)),
+        borderRadius: 8, borderSkipped: false, maxBarThickness: 56,
+      }] },
+      options: o2,
+    }));
+
+    // 3. findBlockMin kernel time
+    const o3 = baseOptions(t);
+    o3.plugins.legend = { display: false };
+    o3.plugins.tooltip.callbacks = { label: ctx => `${ctx.parsed.y.toLocaleString()} ms` };
+    o3.scales = { y: axis('Kernel time (ms)'), x: axis('numBlocks', { grid: { display: false } }) };
+    charts.push(new Chart(document.getElementById('blockMinChart'), {
+      type: 'line',
+      data: { labels: numBlocksLabels, datasets: [{
+        label: 'findBlockMin kernel time (ms)', data: kernelTimes,
+        borderColor: t.c, backgroundColor: alpha(t.c, 0.12), fill: true,
+        pointRadius: 4, pointHoverRadius: 6, borderWidth: 2.5, tension: 0.3,
+      }] },
+      options: o3,
+    }));
+  }
+
+  function buildHeatmap() {
+    const t = theme();
+    const all = heatData.flatMap(r => r.vals);
+    const min = Math.min(...all), max = Math.max(...all);
+    const tbody = document.getElementById('heatBody');
+    tbody.innerHTML = '';
+    heatData.forEach(row => {
+      const tr = document.createElement('tr');
+      const first = document.createElement('td');
+      first.textContent = row.nb;
+      first.style.fontWeight = '600';
+      tr.appendChild(first);
+      row.vals.forEach(v => {
+        const s = (v - min) / (max - min); // 0 = fastest, 1 = slowest
+        const td = document.createElement('td');
+        td.className = 'cell';
+        const chip = document.createElement('span');
+        chip.textContent = v.toFixed(2) + ' s';
+        if (s < 0.1) { chip.style.background = t.greenFill; chip.style.color = t.green; }
+        else if (s > 0.6) { chip.style.background = t.redFill; chip.style.color = t.red; }
+        else { chip.style.background = css('--fill'); chip.style.color = t.label; }
+        td.appendChild(chip);
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+  }
+
+  function render() {
+    if (window.Chart) buildCharts();
+    buildHeatmap();
+  }
+  render();
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', render);
+
+  /* ── Gentle reveal on scroll ── */
+  const items = document.querySelectorAll('.reveal');
+  if (!('IntersectionObserver' in window)) {
+    items.forEach(el => el.classList.add('in'));
+  } else {
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { rootMargin: '0px 0px -8% 0px' });
+    items.forEach(el => io.observe(el));
+  }
 </script>
 </body>
 </html>

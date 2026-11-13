@@ -2,11 +2,16 @@
 We parallelize the Neighbor-Joining (NJ) algorithm from QuickTree on the GPU with CUDA.
 
 ## Results
-| Input | Speedup vs. QuickTree (CPU) | Accuracy vs. reference tree |
-|---|---|---|
-| 10,000 taxa | **20×** | Normalized Robinson-Foulds distance **0.0013** (9,250 branches matched, 26 differ) |
+| Taxa | QuickTree (CPU) | GPU version | Speedup | Similarity to QuickTree tree |
+|---|---|---|---|---|
+| 1K | 0.38 s | 0.64 s | 0.59× | 99.74% |
+| 5K | 34.61 s | 8.86 s | 3.91× | 99.75% |
+| 10K | 311.58 s | 37.86 s | **8.23×** | 99.87% |
+| 20K | 3,553 s | 167.64 s | **21.2×** | 99.82% |
 
-Measured on an NVIDIA A30 (MIG 2g.12gb slice) on UCSD's DSMLP cluster. The full run log is in [`outputs/output.log`](outputs/output.log) and the tree comparison in [`outputs/tree_10k_RFdistances.txt`](outputs/tree_10k_RFdistances.txt).
+The GPU version wins once the matrix is large enough to keep the GPU busy; at 1K taxa, fixed GPU costs such as data transfer and kernel launches outweigh the parallel work. Full results and charts: [results page](https://clv07.github.io/quicktree-parallelism/results.html).
+
+Measured on an NVIDIA A30 (MIG 2g.12gb slice) on UCSD's DSMLP cluster. The 10K run log is in [`outputs/output.log`](outputs/output.log) and its tree comparison in [`outputs/tree_10k_RFdistances.txt`](outputs/tree_10k_RFdistances.txt).
 
 ## How it works
 NJ repeatedly finds the closest pair of nodes in an N×N distance matrix, merges them, and updates the matrix. On the CPU each step is O(N²), and it runs N times.
