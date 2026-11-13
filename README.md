@@ -1,5 +1,21 @@
 # Quicktree Parallelism
-We parallelize the implementation of the Neighbor-Joning (NJ) algorithm based on QuickTree.
+We parallelize the Neighbor-Joining (NJ) algorithm from QuickTree on the GPU with CUDA.
+
+## Results
+| Input | Speedup vs. QuickTree (CPU) | Accuracy vs. reference tree |
+|---|---|---|
+| 10,000 taxa | **20×** | Normalized Robinson-Foulds distance **0.0013** (9,250 branches matched, 26 differ) |
+
+Measured on an NVIDIA A30 (MIG 2g.12gb slice) on UCSD's DSMLP cluster. The full run log is in [`outputs/output.log`](outputs/output.log) and the tree comparison in [`outputs/tree_10k_RFdistances.txt`](outputs/tree_10k_RFdistances.txt).
+
+## How it works
+NJ repeatedly finds the closest pair of nodes in an N×N distance matrix, merges them, and updates the matrix. On the CPU each step is O(N²), and it runs N times.
+
+- **Min-pair search on the GPU.** Each thread block reduces its slice of the matrix to a local minimum in shared memory (`findBlockMin`), then a second kernel reduces the block results to the global minimum (`findGlobalMin`).
+- **Incremental updates.** After a merge, only the merged node's row changes, so we update that row and the per-node distance sums in O(N) (`updateDistanceMatrix`, `updateU`) instead of recomputing the matrix.
+- **Active-node mask.** Merged nodes are marked inactive instead of compacting the matrix, which avoids moving memory on every step.
+
+Team project for ECE 213 (Parallel Computing in Bioinformatics), UC San Diego, Winter 2026.
 
 ## Table of Contents
 - [Quicktree Parallelism](#quicktree-parallelism)
